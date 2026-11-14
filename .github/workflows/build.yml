@@ -45,6 +45,11 @@ jobs:
           key: cargo-${{ runner.os }}-${{ hashFiles('Cargo.toml', 'Cargo.lock') }}
 
       - name: Build release
+        env:
+          CC: gcc
+          CXX: g++
+          AR: ar
+          RANLIB: ranlib
         run: cargo build --release
 
       - name: Check version
