@@ -26,6 +26,13 @@ jobs:
       - name: Install build tools
         run: sudo apt-get update && sudo apt-get install -y build-essential
 
+      # Upstream 0.11.6+ ships .cargo/config.toml with an `include = [{ ... }]`
+      # table entry that the runner cargo cannot parse, and a clang linker script
+      # aimed at developer machines. Prebuilt CI binaries built fine on 0.11.5
+      # with the default toolchain, so drop the file for the package build only.
+      - name: Use default Cargo toolchain
+        run: rm -f .cargo/config.toml
+
       - name: Install Rust
         uses: dtolnay/rust-toolchain@1.92.0
 
