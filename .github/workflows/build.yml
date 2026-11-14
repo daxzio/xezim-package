@@ -34,7 +34,7 @@ jobs:
         run: rm -f .cargo/config.toml
 
       - name: Install Rust
-        uses: dtolnay/rust-toolchain@1.92.0
+        uses: dtolnay/rust-toolchain@1.100.0
 
       - name: Cache cargo
         uses: actions/cache@v4

@@ -8,7 +8,7 @@ The binary is built from the upstream tag with default features (no JIT, no prof
 
 ## Publish a version
 
-Actions → Build → Run workflow. Set `tag` to an upstream tag such as `0.11.4` (no `v` prefix).
+Actions → Build → Run workflow. Set `tag` to an upstream tag such as `0.11.6` (no `v` prefix). Tags `0.11.6` and later need Rust 1.100 on the builder (already configured in the workflow).
 
 The asset URL is:
 
