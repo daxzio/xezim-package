@@ -4,16 +4,56 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: "Upstream xezim tag to build (for example 0.11.4)"
+        description: "Upstream xezim tag to build (for example 0.11.6)"
         required: true
         type: string
+      latest:
+        description: "Mark this release as the repository latest"
+        required: false
+        type: boolean
+        default: true
+      targets:
+        description: "Ubuntu images to build"
+        required: false
+        type: choice
+        default: all
+        options:
+          - all
+          - 24.04
+          - 26.04
 
 jobs:
-  build:
+  plan:
     runs-on: ubuntu-24.04
+    outputs:
+      matrix: ${{ steps.plan.outputs.matrix }}
+    steps:
+      - id: plan
+        run: |
+          case "${{ inputs.targets }}" in
+            all)
+              matrix='{"include":[{"runs-on":"ubuntu-24.04","ubuntu":"24.04"},{"runs-on":"ubuntu-26.04","ubuntu":"26.04"}]}'
+              ;;
+            24.04)
+              matrix='{"include":[{"runs-on":"ubuntu-24.04","ubuntu":"24.04"}]}'
+              ;;
+            26.04)
+              matrix='{"include":[{"runs-on":"ubuntu-26.04","ubuntu":"26.04"}]}'
+              ;;
+            *)
+              echo "unknown targets=${{ inputs.targets }}" >&2
+              exit 1
+              ;;
+          esac
+          echo "matrix=$matrix" >> "$GITHUB_OUTPUT"
+
+  build:
+    needs: plan
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
+    runs-on: ${{ matrix.runs-on }}
     timeout-minutes: 180
-    permissions:
-      contents: write
     steps:
       - name: Checkout upstream tag
         uses: actions/checkout@v4
@@ -28,8 +68,7 @@ jobs:
 
       # Upstream 0.11.6+ ships .cargo/config.toml with an `include = [{ ... }]`
       # table entry that the runner cargo cannot parse, and a clang linker script
-      # aimed at developer machines. Prebuilt CI binaries built fine on 0.11.5
-      # with the default toolchain, so drop the file for the package build only.
+      # aimed at developer machines. Drop it for package builds only.
       - name: Use default Cargo toolchain
         run: rm -f .cargo/config.toml
 
@@ -42,7 +81,7 @@ jobs:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
-          key: cargo-${{ runner.os }}-${{ hashFiles('Cargo.toml', 'Cargo.lock') }}
+          key: cargo-${{ matrix.ubuntu }}-${{ hashFiles('Cargo.toml', 'Cargo.lock') }}
 
       - name: Build release
         env:
@@ -53,25 +92,68 @@ jobs:
         run: cargo build --release
 
       - name: Check version
-        run: ./target/release/xezim -V | tee version.txt
+        run: ./target/release/xezim -V | tee "version-${{ matrix.ubuntu }}.txt"
 
       - name: Package
         run: |
+          set -euo pipefail
+          asset="xezim-ubuntu-${{ matrix.ubuntu }}.tar.gz"
           mkdir -p dist/bin
           cp target/release/xezim dist/bin/xezim
-          tar -C dist -czf xezim-ubuntu-24.04.tar.gz bin
-          tar -tzf xezim-ubuntu-24.04.tar.gz
+          tar -C dist -czf "$asset" bin
+          tar -tzf "$asset" >/dev/null
+
+      - name: Upload asset
+        uses: actions/upload-artifact@v4
+        with:
+          name: xezim-ubuntu-${{ matrix.ubuntu }}.tar.gz
+          path: xezim-ubuntu-${{ matrix.ubuntu }}.tar.gz
+          if-no-files-found: error
+
+  release:
+    needs: build
+    runs-on: ubuntu-26.04
+    if: ${{ always() && !cancelled() }}
+    permissions:
+      contents: write
+    steps:
+      - name: Download assets
+        uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          pattern: xezim-ubuntu-*
+          merge-multiple: true
+
+      - name: Verify at least one tarball
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          files=(xezim-ubuntu-*.tar.gz)
+          if [ "${#files[@]}" -eq 0 ]; then
+            echo "No xezim-ubuntu-*.tar.gz artifacts were produced" >&2
+            exit 1
+          fi
+          ls -la "${files[@]}"
 
       - name: Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ inputs.tag }}
           name: ${{ inputs.tag }}
-          files: xezim-ubuntu-24.04.tar.gz
-          fail_on_unmatched_files: true
+          make_latest: ${{ inputs.latest }}
+          files: xezim-ubuntu-*.tar.gz
+          fail_on_unmatched_files: false
           body: |
-            Prebuilt xezim ${{ inputs.tag }} for ubuntu-24.04.
+            Prebuilt xezim ${{ inputs.tag }} for GitHub-hosted Ubuntu runners.
+
+            | Asset | Runner |
+            |-------|--------|
+            | `xezim-ubuntu-26.04.tar.gz` | `ubuntu-26.04` / `ubuntu-latest` (while latest is 26.04) |
+            | `xezim-ubuntu-24.04.tar.gz` | `ubuntu-24.04` |
+
             Source: https://github.com/aionhw/xezim/tree/${{ inputs.tag }}
             Archive layout: `bin/xezim`
+
+            [`daxzio/setup-xezim`](https://github.com/daxzio/setup-xezim) picks the asset for the runner automatically.
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
