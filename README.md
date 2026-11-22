@@ -13,7 +13,7 @@ The binary is built from the upstream tag with default features (no JIT, no prof
 
 ## Publish a version
 
-Actions → Build → Run workflow. Set `tag` to an upstream tag such as `0.11.6` (no `v` prefix). Tags `0.11.6` and later need Rust 1.100 on the builder (already configured in the workflow).
+Actions → Build → Run workflow. Set `tag` to an upstream tag such as `0.11.7` (no `v` prefix). Tags `0.11.6` and later need Rust 1.100 on the builder (already configured in the workflow).
 
 - `targets` — build both images (`all`), or only `24.04` or `26.04`.
 
