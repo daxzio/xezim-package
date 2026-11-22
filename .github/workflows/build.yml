@@ -169,7 +169,7 @@ jobs:
             echo "SETUP_XEZIM_DISPATCH secret not set; skip repository_dispatch." >&2
             exit 0
           fi
-          gh api --method POST "repos/daxzio/setup-xezim/dispatches" \
-            -f event_type=xezim-package-published \
-            --raw-field "client_payload=$(jq -nc --arg tag '${{ inputs.tag }}' '{tool:"xezim",tag:$tag}')"
+          jq -nc --arg tag '${{ inputs.tag }}' \
+            '{event_type:"xezim-package-published", client_payload:{tool:"xezim", tag:$tag}}' \
+            | gh api --method POST "repos/daxzio/setup-xezim/dispatches" --input -
           echo "Announced package ${{ inputs.tag }} to daxzio/setup-xezim."
