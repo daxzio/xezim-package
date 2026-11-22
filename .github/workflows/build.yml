@@ -158,18 +158,18 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Notify PeakRDL-etana (xezim CI)
+      - name: Announce release (setup-xezim hub)
         if: ${{ inputs.latest }}
         continue-on-error: true
         env:
-          GH_TOKEN: ${{ secrets.PEAKRDL_ETANA_DISPATCH }}
+          GH_TOKEN: ${{ secrets.SETUP_XEZIM_DISPATCH }}
         run: |
           set -euo pipefail
           if [ -z "${GH_TOKEN:-}" ]; then
-            echo "PEAKRDL_ETANA_DISPATCH secret not set; skip repository_dispatch." >&2
+            echo "SETUP_XEZIM_DISPATCH secret not set; skip repository_dispatch." >&2
             exit 0
           fi
-          gh api --method POST "repos/daxzio/PeakRDL-etana/dispatches" \
-            -f event_type=xezim-package-release \
-            --raw-field "client_payload=$(jq -nc --arg tag '${{ inputs.tag }}' '{tag:$tag, peakrdl_ref:"develop"}')"
-          echo "Dispatched PeakRDL-etana xezim tests for package ${{ inputs.tag }}."
+          gh api --method POST "repos/daxzio/setup-xezim/dispatches" \
+            -f event_type=xezim-package-published \
+            --raw-field "client_payload=$(jq -nc --arg tag '${{ inputs.tag }}' '{tool:"xezim",tag:$tag}')"
+          echo "Announced package ${{ inputs.tag }} to daxzio/setup-xezim."

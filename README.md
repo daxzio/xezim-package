@@ -24,8 +24,8 @@ https://github.com/daxzio/xezim-package/releases/download/<tag>/xezim-ubuntu-26.
 https://github.com/daxzio/xezim-package/releases/download/<tag>/xezim-ubuntu-24.04.tar.gz
 ```
 
-## PeakRDL-etana CI hook
+## Release notifications (subscribers)
 
-When **Build** publishes a release with **latest** enabled, it sends a `repository_dispatch` to [PeakRDL-etana](https://github.com/daxzio/PeakRDL-etana) (`xezim-package-release`), which re-runs `test_etana_xezim` and `test_regblock_xezim` on `develop` (those jobs use `setup-xezim@v1` with default **latest**).
+When **Build** publishes a release with **latest** enabled, it notifies [daxzio/setup-xezim](https://github.com/daxzio/setup-xezim) (`xezim-package-published`). That repo fans out to downstream repos (for example PeakRDL-etana) that list themselves as subscribers.
 
-Repository secret **`PEAKRDL_ETANA_DISPATCH`**: a fine-grained or classic PAT with permission to trigger events on `daxzio/PeakRDL-etana` (contents write, or classic `repo` on that repo). If unset, the notify step is skipped and the release still succeeds.
+See [setup-xezim/SUBSCRIBING.md](https://github.com/daxzio/setup-xezim/blob/main/SUBSCRIBING.md). Secret on **this** repo: **`SETUP_XEZIM_DISPATCH`** (PAT that may trigger events on `daxzio/setup-xezim`). If unset, the announce step is skipped and the release still succeeds.
