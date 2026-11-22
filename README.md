@@ -23,3 +23,9 @@ Asset URLs:
 https://github.com/daxzio/xezim-package/releases/download/<tag>/xezim-ubuntu-26.04.tar.gz
 https://github.com/daxzio/xezim-package/releases/download/<tag>/xezim-ubuntu-24.04.tar.gz
 ```
+
+## PeakRDL-etana CI hook
+
+When **Build** publishes a release with **latest** enabled, it sends a `repository_dispatch` to [PeakRDL-etana](https://github.com/daxzio/PeakRDL-etana) (`xezim-package-release`), which re-runs `test_etana_xezim` and `test_regblock_xezim` on `develop` (those jobs use `setup-xezim@v1` with default **latest**).
+
+Repository secret **`PEAKRDL_ETANA_DISPATCH`**: a fine-grained or classic PAT with permission to trigger events on `daxzio/PeakRDL-etana` (contents write, or classic `repo` on that repo). If unset, the notify step is skipped and the release still succeeds.
